@@ -10,6 +10,7 @@ YELLOW = (239, 174, 84)
 GREEN = (0, 128, 0)
 RED = (255, 99, 71)
 WHITE = (255, 255, 255)
+HOVER_COLOR = (255, 215, 0)  # Cor do efeito de hover (amarelo claro)
 
 # Dimensões da tela
 WIDTH, HEIGHT = 800, 600
@@ -53,19 +54,24 @@ def draw_title():
         ball_direction *= -1
     ball_offset += ball_speed * ball_direction
 
-def draw_input_field():
-    """Desenha o campo para nome do jogador."""
+
+def draw_input_field(mouse_pos):
+    """Desenha o campo para nome do jogador com efeito de hover."""
     label = font_label.render("Insira seu nome:", True, YELLOW)
     screen.blit(label, (WIDTH // 2 - 130, 150))
 
     input_rect = pygame.Rect((WIDTH // 2 - 150, 190), (300, 40))
-    pygame.draw.rect(screen, WHITE if input_active else YELLOW, input_rect, 2)
+    
+    # Verifica se o mouse está sobre o campo de input
+    input_hover = input_rect.collidepoint(mouse_pos)
+    pygame.draw.rect(screen, HOVER_COLOR if input_hover else YELLOW, input_rect, 2)
+    
     input_surface = font_option.render(input_text or "Seu nome", True, WHITE)
     screen.blit(input_surface, (input_rect.x + 10, input_rect.y + 5))
 
 
-def draw_algorithm_options():
-    """Desenha as opções de algoritmo."""
+def draw_algorithm_options(mouse_pos):
+    """Desenha as opções de algoritmo com efeito de hover."""
     label = font_label.render("Algoritmo:", True, YELLOW)
     screen.blit(label, (WIDTH // 2 - 150, 250))
 
@@ -73,6 +79,9 @@ def draw_algorithm_options():
     for option in algorithm_options:
         rect = pygame.Rect((x, y), (140, 40))
         color = YELLOW if option == selected_algorithm else WHITE
+        # Efeito de hover
+        if rect.collidepoint(mouse_pos):
+            color = HOVER_COLOR
         pygame.draw.rect(screen, color, rect, border_radius=5)
         text_surface = font_option.render(option, True, BLUE)
         text_rect = text_surface.get_rect(center=rect.center)
@@ -81,8 +90,8 @@ def draw_algorithm_options():
         x += 160  # Espaçamento horizontal
 
 
-def draw_ply_options():
-    """Desenha as opções de profundidade."""
+def draw_ply_options(mouse_pos):
+    """Desenha as opções de profundidade com efeito de hover."""
     label = font_label.render("Ply:", True, YELLOW)
     screen.blit(label, (WIDTH // 2 - 150, 350))
 
@@ -90,6 +99,9 @@ def draw_ply_options():
     for option in ply_options:
         rect = pygame.Rect((x, y), (60, 40))
         color = YELLOW if option == selected_ply else WHITE
+        # Efeito de hover
+        if rect.collidepoint(mouse_pos):
+            color = HOVER_COLOR
         pygame.draw.rect(screen, color, rect, border_radius=5)
         text_surface = font_option.render(option, True, BLUE)
         text_rect = text_surface.get_rect(center=rect.center)
@@ -98,10 +110,14 @@ def draw_ply_options():
         x += 80  # Espaçamento horizontal
 
 
-def draw_play_button():
-    """Desenha o botão de jogar."""
+def draw_play_button(mouse_pos):
+    """Desenha o botão de jogar com efeito de hover."""
     play_rect = pygame.Rect((WIDTH // 2 - 100, 470), (200, 50))
-    pygame.draw.rect(screen, YELLOW, play_rect, border_radius=5)
+    color = YELLOW
+    # Efeito de hover
+    if play_rect.collidepoint(mouse_pos):
+        color = HOVER_COLOR
+    pygame.draw.rect(screen, color, play_rect, border_radius=5)
     play_text = font_button.render("Jogar", True, BLUE)
     play_text_rect = play_text.get_rect(center=play_rect.center)
     screen.blit(play_text, play_text_rect)
@@ -115,12 +131,14 @@ while running:
     algorithm_rects = []
     ply_rects = []
 
+    mouse_pos = pygame.mouse.get_pos()  # Pega a posição do mouse
+
     # Desenha os elementos na tela
     draw_title()
-    draw_input_field()
-    draw_algorithm_options()
-    draw_ply_options()
-    play_button = draw_play_button()
+    draw_input_field(mouse_pos)
+    draw_algorithm_options(mouse_pos)
+    draw_ply_options(mouse_pos)
+    play_button = draw_play_button(mouse_pos)
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:

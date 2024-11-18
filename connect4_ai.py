@@ -4,12 +4,187 @@ import numpy as np
 import pygame
 # for exiting the gui
 import sys
-# for calulations, for exampel with infinity
+# for calculations, for example with infinity
 import math
 # for delaying execution of certain events
 from threading import Timer
 # for generating random values, for example for 1st turn
 import random
+
+# global constant variables
+# -------------------------------
+
+# row and column count
+ROWS = 7
+COLS = 8
+
+# turns
+PLAYER_TURN = 0
+AI_TURN = 1
+
+# pieces represented as numbers
+PLAYER_PIECE = 1
+AI_PIECE = 2
+
+# colors for GUI
+BLUE = (0, 0, 153)  # MENU_BLUE
+RED = (255, 99, 71)  # MENU_RED
+YELLOW = (239, 174, 84)  # MENU_YELLOW
+BLACK = (0, 0, 0)
+WHITE = (255, 255, 255)
+
+def show_menu_screen(screen):
+    # Colors
+    MENU_BLUE = (0, 0, 153)
+    MENU_YELLOW = (239, 174, 84)
+    MENU_GREEN = (0, 128, 0)
+    MENU_RED = (255, 99, 71)
+    WHITE = (255, 255, 255)
+    HOVER_COLOR = (255, 215, 0)  # Hover effect color (light yellow)
+
+    # Font (Using downloaded font)
+    font_title = pygame.font.Font("Galindo-Regular.ttf", 60)  # Tamanho reduzido
+    font_label = pygame.font.Font("Galindo-Regular.ttf", 25)
+    font_option = pygame.font.Font("Galindo-Regular.ttf", 23)
+    font_button = pygame.font.Font("Galindo-Regular.ttf", 30)
+
+    # Variables
+    clock = pygame.time.Clock()
+    ball_offset = 0
+    ball_direction = 1
+    input_active = False
+    input_text = ""
+    selected_algorithm = "Mini-max"
+    selected_ply = "1"
+
+    # Options for selection
+    algorithm_options = ["Mini-max", "Alfa-beta"]
+    ply_options = ["1", "2", "3", "4"]
+    algorithm_rects = []
+    ply_rects = []
+
+    # Animation settings
+    ball_speed = 2
+
+    def draw_title():
+        """Draw the title with animated balls."""
+        title_surface = font_title.render("Connect4 da Dani", True, MENU_YELLOW)
+        title_rect = title_surface.get_rect(center=(screen.get_width() // 2, 50))
+        screen.blit(title_surface, title_rect)
+
+        # Ball animation
+        nonlocal ball_offset, ball_direction
+        if ball_offset >= 10 or ball_offset <= -10:
+            ball_direction *= -1
+        ball_offset += ball_speed * ball_direction
+
+    def draw_input_field(mouse_pos):
+        """Draw the input field for the player's name with hover effect."""
+        label = font_label.render("Insira seu nome:", True, MENU_YELLOW)
+        screen.blit(label, (screen.get_width() // 2 - 130, 120))
+
+        input_rect = pygame.Rect((screen.get_width() // 2 - 150, 160), (300, 40))
+        input_hover = input_rect.collidepoint(mouse_pos)
+        pygame.draw.rect(screen, HOVER_COLOR if input_hover else MENU_YELLOW, input_rect, 2)
+
+        input_surface = font_option.render(input_text or "Seu nome", True, WHITE)
+        screen.blit(input_surface, (input_rect.x + 10, input_rect.y + 5))
+        return input_rect
+
+    def draw_algorithm_options(mouse_pos):
+        """Draw algorithm options with hover effect."""
+        label = font_label.render("Escolha o algoritmo:", True, MENU_YELLOW)
+        screen.blit(label, (screen.get_width() // 2 - 150, 220))
+
+        x, y = screen.get_width() // 2 - 150, 260
+        for option in algorithm_options:
+            rect = pygame.Rect((x, y), (140, 40))
+            color = MENU_YELLOW if option == selected_algorithm else WHITE
+            if rect.collidepoint(mouse_pos):
+                color = HOVER_COLOR
+            pygame.draw.rect(screen, color, rect, border_radius=5)
+            text_surface = font_option.render(option, True, MENU_BLUE)
+            text_rect = text_surface.get_rect(center=rect.center)
+            screen.blit(text_surface, text_rect)
+            algorithm_rects.append((rect, option))
+            x += 160
+
+    def draw_ply_options(mouse_pos):
+        """Draw depth options with hover effect."""
+        label = font_label.render("Escolha a profundidade (ply):", True, MENU_YELLOW)
+        screen.blit(label, (screen.get_width() // 2 - 150, 320))
+
+        x, y = screen.get_width() // 2 - 150, 360
+        for option in ply_options:
+            rect = pygame.Rect((x, y), (60, 40))
+            color = MENU_YELLOW if option == selected_ply else WHITE
+            if rect.collidepoint(mouse_pos):
+                color = HOVER_COLOR
+            pygame.draw.rect(screen, color, rect, border_radius=5)
+            text_surface = font_option.render(option, True, MENU_BLUE)
+            text_rect = text_surface.get_rect(center=rect.center)
+            screen.blit(text_surface, text_rect)
+            ply_rects.append((rect, option))
+            x += 80
+
+    def draw_play_button(mouse_pos):
+        """Draw the play button with hover effect."""
+        play_rect = pygame.Rect((screen.get_width() // 2 - 100, 440), (200, 50))
+        color = MENU_YELLOW if not play_rect.collidepoint(mouse_pos) else HOVER_COLOR
+        pygame.draw.rect(screen, color, play_rect, border_radius=5)
+        play_text = font_button.render("Jogar", True, MENU_BLUE)
+        play_text_rect = play_text.get_rect(center=play_rect.center)
+        screen.blit(play_text, play_text_rect)
+        return play_rect
+
+    # Main loop
+    running = True
+    while running:
+        screen.fill(MENU_BLUE)
+        algorithm_rects.clear()
+        ply_rects.clear()
+
+        mouse_pos = pygame.mouse.get_pos()
+        draw_title()
+        input_rect = draw_input_field(mouse_pos)
+        draw_algorithm_options(mouse_pos)
+        draw_ply_options(mouse_pos)
+        play_button = draw_play_button(mouse_pos)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if input_rect.collidepoint(event.pos):
+                    input_active = True
+                else:
+                    input_active = False
+
+                for rect, option in algorithm_rects:
+                    if rect.collidepoint(event.pos):
+                        selected_algorithm = option
+
+                for rect, option in ply_rects:
+                    if rect.collidepoint(event.pos):
+                        selected_ply = option
+
+                if play_button.collidepoint(event.pos):
+                    return input_text, selected_algorithm, selected_ply
+
+            if event.type == pygame.KEYDOWN and input_active:
+                if event.key == pygame.K_BACKSPACE:
+                    input_text = input_text[:-1]
+                else:
+                    input_text += event.unicode
+
+        pygame.display.flip()
+        clock.tick(60)
+
+
+# Continuando com o restante do jogo (código de lógica e loop principal segue o mesmo a partir daqui).
+
 
 
 # global constant variables
@@ -97,7 +272,7 @@ def draw_board(board):
         for r in range(ROWS):
             pygame.draw.rect(screen, BLUE, (c * SQUARESIZE, r * SQUARESIZE + SQUARESIZE, SQUARESIZE, SQUARESIZE ))
             if board[r][c] == 0:
-                pygame.draw.circle(screen, BLACK, (int(c * SQUARESIZE + SQUARESIZE/2), int(r* SQUARESIZE + SQUARESIZE + SQUARESIZE/2)), circle_radius)
+                pygame.draw.circle(screen, WHITE, (int(c * SQUARESIZE + SQUARESIZE/2), int(r* SQUARESIZE + SQUARESIZE + SQUARESIZE/2)), circle_radius)
             elif board[r][c] == 1:
                 pygame.draw.circle(screen, RED, (int(c * SQUARESIZE + SQUARESIZE/2), int(r* SQUARESIZE + SQUARESIZE + SQUARESIZE/2)), circle_radius)
             else :
@@ -288,101 +463,92 @@ not_over = True
 # initial turn is random
 turn = random.randint(PLAYER_TURN, AI_TURN)
 
-# initializing pygame
+# Inicialização do pygame e configuração da tela
 pygame.init()
 
-# size of one game location
+# Configuração da tela
 SQUARESIZE = 90
-
-# dimensions for pygame GUI
 width = COLS * SQUARESIZE
 height = (ROWS + 1) * SQUARESIZE
-circle_radius = int(SQUARESIZE/2 - 5)
+circle_radius = int(SQUARESIZE / 2 - 5)
 size = (width, height)
 screen = pygame.display.set_mode(size)
 
-# font for win message
+# Exibição do menu inicial
+player_name, algorithm, ply_depth = show_menu_screen(screen)
+
+# Converte a profundidade do ply para inteiro (se necessário)
+ply_depth = int(ply_depth)
+
+# Escolha do algoritmo de IA
+use_alpha_beta = algorithm == "Alfa-beta"
+
+# Fonte para mensagens
 my_font = pygame.font.SysFont("monospace", 75)
 
-# draw GUI
+# Inicialização do tabuleiro e jogo
+board = create_board()
 draw_board(board)
 pygame.display.update()
 
+game_over = False
+not_over = True
+turn = random.randint(PLAYER_TURN, AI_TURN)
 
-# game loop
-# -------------------------------
-
-# loop that runs while the game_over variable is false,
-# i.e., someone hasn't placed 4 in a row yet
+# Loop principal do jogo
 while not game_over:
-
-    # for every player event
     for event in pygame.event.get():
-
-        # if player clses the window
         if event.type == pygame.QUIT:
             sys.exit()
 
-        # if player moves the mouse, their piece moves at the top of the screen
+        # Movimento do mouse e ação do jogador
         if event.type == pygame.MOUSEMOTION and not_over:
             pygame.draw.rect(screen, BLACK, (0, 0, width, SQUARESIZE))
             xpos = pygame.mouse.get_pos()[0]
             if turn == PLAYER_TURN:
-                pygame.draw.circle(screen, RED, (xpos, int(SQUARESIZE/2)), circle_radius )
+                pygame.draw.circle(screen, RED, (xpos, int(SQUARESIZE / 2)), circle_radius)
 
-        # if player clicks the button, we drop their piece down
         if event.type == pygame.MOUSEBUTTONDOWN and not_over:
-            pygame.draw.rect(screen, BLACK, (0,0, width, SQUARESIZE))
+            pygame.draw.rect(screen, BLACK, (0, 0, width, SQUARESIZE))
 
-            # ask for player 1 inupt
             if turn == PLAYER_TURN:
-
-                # we assume players will use correct input
-                xpos = event.pos[0] 
-                col = int(math.floor(xpos/SQUARESIZE)) 
+                xpos = event.pos[0]
+                col = int(math.floor(xpos / SQUARESIZE))
 
                 if is_valid_location(board, col):
                     row = get_next_open_row(board, col)
                     drop_piece(board, row, col, PLAYER_PIECE)
+
                     if winning_move(board, PLAYER_PIECE):
-                        print("PLAYER 1 WINS!")
-                        label = my_font.render("PLAYER 1 WINS!", 1, RED)
+                        print(f"{player_name.upper()} WINS!")
+                        label = my_font.render(f"{player_name.upper()} WINS!", 1, RED)
                         screen.blit(label, (40, 10))
                         not_over = False
-                        t = Timer(3.0, end_game)
-                        t.start()
-                
-                draw_board(board) 
+                        Timer(3.0, end_game).start()
 
-                # increment turn by 1
-                turn += 1
-
-                # this will alternate between 0 and 1 withe very turn
-                turn = turn % 2 
+                draw_board(board)
+                turn = (turn + 1) % 2
 
         pygame.display.update()
 
-                     
-    # if its the AI's turn
+    # Turno da IA
     if turn == AI_TURN and not game_over and not_over:
-
-        # the column to drop in is found using minimax
-        col, minimax_score = minimax(board, 5, -math.inf, math.inf, True)
+        if use_alpha_beta:
+            col, minimax_score = minimax(board, ply_depth, -math.inf, math.inf, True)
+        else:
+            col, minimax_score = minimax(board, ply_depth, -math.inf, math.inf, True)
 
         if is_valid_location(board, col):
             pygame.time.wait(500)
             row = get_next_open_row(board, col)
             drop_piece(board, row, col, AI_PIECE)
+
             if winning_move(board, AI_PIECE):
                 print("PLAYER 2 WINS!")
                 label = my_font.render("PLAYER 2 WINS!", 1, YELLOW)
                 screen.blit(label, (40, 10))
                 not_over = False
-                t = Timer(3.0, end_game)
-                t.start()
-        draw_board(board)    
+                Timer(3.0, end_game).start()
 
-        # increment turn by 1
-        turn += 1
-        # this will alternate between 0 and 1 withe very turn
-        turn = turn % 2
+        draw_board(board)
+        turn = (turn + 1) % 2

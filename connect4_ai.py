@@ -11,6 +11,8 @@ from threading import Timer
 # for generating random values, for example for 1st turn
 import random
 
+import time
+
 # global constant variables
 # -------------------------------
 
@@ -495,6 +497,11 @@ game_over = False
 not_over = True
 turn = random.randint(PLAYER_TURN, AI_TURN)
 
+# No início do jogo (exibição das configurações escolhidas)
+print(f"Jogador: {player_name}")
+print(f"Algoritmo: {algorithm}")
+print(f"Profundidade escolhida (ply): {ply_depth}")
+
 # Loop principal do jogo
 while not game_over:
     for event in pygame.event.get():
@@ -533,10 +540,14 @@ while not game_over:
 
     # Turno da IA
     if turn == AI_TURN and not game_over and not_over:
+        start_time = time.time()  # Início do timer
         if use_alpha_beta:
             col, minimax_score = minimax(board, ply_depth, -math.inf, math.inf, True)
         else:
             col, minimax_score = minimax(board, ply_depth, -math.inf, math.inf, True)
+        end_time = time.time()  # Fim do timer
+
+        elapsed_time = end_time - start_time  # Tempo total decorrido
 
         if is_valid_location(board, col):
             pygame.time.wait(500)
@@ -551,4 +562,9 @@ while not game_over:
                 Timer(3.0, end_game).start()
 
         draw_board(board)
+
+        # Logs no terminal
+        print(f"IA escolheu a coluna: {col}")
+        print(f"Tempo gasto pela IA: {elapsed_time:.4f} segundos")
+
         turn = (turn + 1) % 2
